@@ -84,12 +84,12 @@ export default function PostDetailPage({ params }: PageProps) {
   }
 
   // 메시지 전송
-  async function sendMessage(text: string) {
+  async function sendMessage(text: string, imageUrl?: string) {
     if (!user || !thread) return;
     const res = await fetch(`/api/threads/${thread.id}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId: user.id, senderNickname: user.nickname, text }),
+      body: JSON.stringify({ senderId: user.id, senderNickname: user.nickname, text, imageUrl }),
     });
     const data = await res.json();
     if (res.ok) setThread(data.thread);

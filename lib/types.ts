@@ -18,6 +18,7 @@ export interface Post {
   offering: Pokemon;      // 내가 줄 포켓몬
   wanting: string;        // 원하는 포켓몬 이름/조건 (자유 텍스트)
   note?: string;          // 추가 설명
+  images?: string[];      // Cloudinary 이미지 URL 목록
   status: PostStatus;
   createdAt: number;
   updatedAt: number;
@@ -29,6 +30,7 @@ export interface Message {
   senderId: string;
   senderNickname: string;
   text: string;
+  imageUrl?: string;      // 첨부 이미지 URL
   createdAt: number;
 }
 
@@ -52,12 +54,14 @@ export interface CreatePostRequest {
   offering: Pokemon;
   wanting: string;
   note?: string;
+  images?: string[];
 }
 
 export interface SendMessageRequest {
   senderId: string;
   senderNickname: string;
   text: string;
+  imageUrl?: string;
 }
 
 export interface StartThreadRequest {

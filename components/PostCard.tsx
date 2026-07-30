@@ -54,6 +54,21 @@ export function PostCard({ post, currentUserId, onDelete, onClose }: PostCardPro
         <p className="text-sm text-slate-500 px-1">💬 {post.note}</p>
       )}
 
+      {/* 이미지 */}
+      {post.images && post.images.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          {post.images.map((url) => (
+            <img
+              key={url}
+              src={url}
+              alt="첨부 이미지"
+              className="h-24 w-24 rounded-xl object-cover border border-slate-100 cursor-pointer"
+              onClick={() => window.open(url, "_blank")}
+            />
+          ))}
+        </div>
+      )}
+
       {/* 액션 버튼 */}
       <div className="flex items-center justify-between pt-1">
         {isOwner ? (

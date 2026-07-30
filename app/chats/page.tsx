@@ -68,12 +68,12 @@ export default function ChatsPage() {
 
   const activeThread = threads.find((t) => t.id === activeThreadId);
 
-  async function sendMessage(text: string) {
+  async function sendMessage(text: string, imageUrl?: string) {
     if (!user || !activeThreadId) return;
     const res = await fetch(`/api/threads/${activeThreadId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId: user.id, senderNickname: user.nickname, text }),
+      body: JSON.stringify({ senderId: user.id, senderNickname: user.nickname, text, imageUrl }),
     });
     const data = await res.json();
     if (res.ok) setThreads((prev) => prev.map((t) => (t.id === activeThreadId ? data.thread : t)));

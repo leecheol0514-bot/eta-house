@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageUpload } from "@/components/ImageUpload";
 import { filterPokemonSuggestions } from "@/lib/pokemon-data";
 import type { CreatePostRequest } from "@/lib/types";
 import { FormEvent, useMemo, useState } from "react";
@@ -18,9 +19,18 @@ export function CreatePostForm({ onSubmit, onCancel }: CreatePostFormProps) {
   const [offeringShiny, setOfferingShiny] = useState(false);
   const [wanting, setWanting] = useState("");
   const [note, setNote] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   const suggestions = useMemo(() => filterPokemonSuggestions(offeringName), [offeringName]);
+
+  function handleImageUpload(url: string) {
+    if (url) setImages((prev) => [...prev, url]);
+  }
+
+  function removeImage(idx: number) {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -37,6 +47,7 @@ export function CreatePostForm({ onSubmit, onCancel }: CreatePostFormProps) {
         },
         wanting: wanting.trim(),
         note: note.trim() || undefined,
+        images: images.length > 0 ? images : undefined,
       });
     } finally {
       setLoading(false);
@@ -139,6 +150,28 @@ export function CreatePostForm({ onSubmit, onCancel }: CreatePostFormProps) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
+
+      {/* 이미지 첨부 */}
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-semibold text-slate-600">📸 이미지 첨부 (선택)</legend>
+        {images.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {images.map((url, idx) => (
+              <div key={url} className="relative">
+                <img src={url} alt="" className="h-20 w-20 rounded-xl object-cover border border-slate-200" />
+                <button
+                  type="button"
+                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-600 text-white text-xs"
+                  onClick={() => removeImage(idx)}
+                >×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {images.length < 3 && (
+          <ImageUpload onUpload={handleImageUpload} label="이미지 추가 (최대 3장)" />
+        )}
+      </fieldset>
 
       <button type="submit" className="btn-primary w-full" disabled={loading}>
         {loading ? "등록 중..." : "게시글 올리기"}

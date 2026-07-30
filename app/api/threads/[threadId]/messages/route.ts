@@ -16,14 +16,15 @@ export async function POST(request: Request, { params }: Params) {
   if (!isParticipant) {
     return NextResponse.json({ error: "참여자만 메시지를 보낼 수 있습니다." }, { status: 403 });
   }
-  if (!body.text?.trim()) {
-    return NextResponse.json({ error: "메시지를 입력해 주세요." }, { status: 400 });
+  if (!body.text?.trim() && !body.imageUrl) {
+    return NextResponse.json({ error: "메시지 또는 이미지를 입력해 주세요." }, { status: 400 });
   }
 
   const updated = await addMessage(params.threadId, {
     senderId: body.senderId,
     senderNickname: body.senderNickname,
     text: body.text.trim(),
+    imageUrl: body.imageUrl,
   });
 
   return NextResponse.json({ thread: updated });

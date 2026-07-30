@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageUpload } from "@/components/ImageUpload";
 import type { ChatThread, Message } from "@/lib/types";
 import { formatFullTime } from "@/lib/utils";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -8,7 +9,7 @@ interface ChatWindowProps {
   thread: ChatThread;
   currentUserId: string;
   currentNickname: string;
-  onSend: (text: string) => Promise<void>;
+  onSend: (text: string, imageUrl?: string) => Promise<void>;
   onProposeDeal: () => Promise<void>;
   onAcceptDeal: () => Promise<void>;
   onRejectDeal: () => Promise<void>;
@@ -24,6 +25,7 @@ export function ChatWindow({
   onRejectDeal,
 }: ChatWindowProps) {
   const [text, setText] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -33,11 +35,12 @@ export function ChatWindow({
 
   async function handleSend(e: FormEvent) {
     e.preventDefault();
-    if (!text.trim() || sending) return;
+    if ((!text.trim() && !imageUrl) || sending) return;
     setSending(true);
     try {
-      await onSend(text.trim());
+      await onSend(text.trim(), imageUrl || undefined);
       setText("");
+      setImageUrl("");
     } finally {
       setSending(false);
     }
@@ -110,7 +113,15 @@ export function ChatWindow({
                     : "bg-white border border-slate-100 text-slate-800 rounded-bl-sm"
                 }`}
               >
-                {msg.text}
+                {msg.imageUrl && (
+                  <img
+                    src={msg.imageUrl}
+                    alt="첨부 이미지"
+                    className="mb-1.5 max-w-full rounded-xl object-contain cursor-pointer"
+                    onClick={() => window.open(msg.imageUrl, "_blank")}
+                  />
+                )}
+                {msg.text && <p>{msg.text}</p>}
               </div>
               <span className="text-xs text-slate-300 px-1">
                 {formatFullTime(msg.createdAt)}
@@ -136,21 +147,35 @@ export function ChatWindow({
 
       {/* 메시지 입력 */}
       {dealStatus !== "confirmed" && (
-        <form onSubmit={handleSend} className="flex gap-2 px-4 py-3">
-          <input
-            className="input flex-1 py-2"
-            placeholder="메시지 입력..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <button
-            type="submit"
-            disabled={!text.trim() || sending}
-            className="rounded-xl bg-poke-red px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-          >
-            전송
-          </button>
-        </form>
+        <div className="px-4 py-3 space-y-2">
+          {/* 이미지 미리보기 */}
+          {imageUrl && (
+            <div className="relative inline-block">
+              <img src={imageUrl} alt="첨부" className="h-16 w-16 rounded-xl object-cover border border-slate-200" />
+              <button
+                type="button"
+                className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-500 text-white text-xs"
+                onClick={() => setImageUrl("")}
+              >×</button>
+            </div>
+          )}
+          <form onSubmit={handleSend} className="flex gap-2">
+            <ImageUpload compact onUpload={(url) => setImageUrl(url)} />
+            <input
+              className="input flex-1 py-2"
+              placeholder="메시지 입력..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={(!text.trim() && !imageUrl) || sending}
+              className="rounded-xl bg-poke-red px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              전송
+            </button>
+          </form>
+        </div>
       )}
       {dealStatus === "confirmed" && (
         <div className="px-4 py-3 text-center text-sm text-slate-400">

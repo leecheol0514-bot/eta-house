@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     },
     wanting: body.wanting.trim(),
     note: body.note?.trim(),
+    images: body.images ?? [],
   });
 
   return NextResponse.json({ post }, { status: 201 });
