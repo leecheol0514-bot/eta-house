@@ -70,3 +70,10 @@ export interface DealActionRequest {
   memberId: string;
   action: "propose" | "accept" | "reject";
 }
+
+// ─── 공지 ────────────────────────────────────────────────
+export interface Notice {
+  id: string;
+  content: string;
+  createdAt: number;
+}

@@ -185,3 +185,59 @@ export async function rejectDeal(threadId: string): Promise<ChatThread | null> {
   await redis.set(threadKey(threadId), updated);
   return updated;
 }
+
+// ─── 공지 ────────────────────────────────────────────────
+import type { Notice } from "./types";
+
+const NOTICES_KEY = "notices:all";
+const noticeKey = (id: string) => `notice:${id}`;
+
+export async function getNotices(): Promise<Notice[]> {
+  const ids = await redis.zrange<string[]>(NOTICES_KEY, 0, -1, { rev: true });
+  if (!ids || ids.length === 0) return [];
+  const items = await Promise.all(ids.map((id) => redis.get<Notice>(noticeKey(id))));
+  return items.filter((n): n is Notice => n !== null);
+}
+
+export async function createNotice(content: string): Promise<Notice> {
+  const notice: Notice = { id: crypto.randomUUID(), content, createdAt: Date.now() };
+  await redis.set(noticeKey(notice.id), notice);
+  await redis.zadd(NOTICES_KEY, { score: notice.createdAt, member: notice.id });
+  return notice;
+}
+
+export async function deleteNotice(id: string): Promise<void> {
+  await redis.del(noticeKey(id));
+  await redis.zrem(NOTICES_KEY, id);
+}
+
+// ─── 통계 ────────────────────────────────────────────────
+export async function getStats() {
+  const posts = await getAllPosts();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTs = today.getTime();
+
+  return {
+    totalPosts: posts.length,
+    openPosts: posts.filter((p) => p.status === "open").length,
+    confirmedPosts: posts.filter((p) => p.status === "confirmed").length,
+    todayPosts: posts.filter((p) => p.createdAt >= todayTs).length,
+  };
+}
+
+// ─── 관리자: 모든 스레드 조회 ────────────────────────────
+export async function getAllThreads(): Promise<ChatThread[]> {
+  // posts 기반으로 모든 스레드 수집
+  const posts = await getAllPosts();
+  const allThreads: ChatThread[] = [];
+  for (const post of posts) {
+    const threads = await getThreadsByPost(post.id);
+    allThreads.push(...threads);
+  }
+  return allThreads.sort((a, b) => {
+    const aLast = a.messages.at(-1)?.createdAt ?? a.createdAt;
+    const bLast = b.messages.at(-1)?.createdAt ?? b.createdAt;
+    return bLast - aLast;
+  });
+}

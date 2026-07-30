@@ -2,8 +2,8 @@
 
 import { CreatePostForm } from "@/components/CreatePostForm";
 import { PostCard } from "@/components/PostCard";
-import type { CreatePostRequest, Post } from "@/lib/types";
-import { getStoredUser } from "@/lib/utils";
+import type { CreatePostRequest, Notice, Post } from "@/lib/types";
+import { formatTime, getStoredUser } from "@/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ export default function BoardPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ id: string; nickname: string } | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
@@ -34,11 +35,17 @@ export default function BoardPage() {
     if (res.ok) setPosts(data.posts);
   }, []);
 
+  const fetchNotices = useCallback(async () => {
+    const res = await fetch("/api/admin/notice");
+    const data = await res.json();
+    if (res.ok) setNotices(data.notices);
+  }, []);
+
   useEffect(() => {
-    fetchPosts().finally(() => setLoading(false));
+    Promise.all([fetchPosts(), fetchNotices()]).finally(() => setLoading(false));
     const interval = setInterval(fetchPosts, 10_000);
     return () => clearInterval(interval);
-  }, [fetchPosts]);
+  }, [fetchPosts, fetchNotices]);
 
   async function handleCreate(data: PostFormData) {
     if (!user) return;
@@ -100,6 +107,23 @@ export default function BoardPage() {
           💬 내 채팅
         </Link>
       </header>
+
+      {/* 공지 */}
+      {notices.length > 0 && (
+        <div className="mb-5 space-y-2">
+          {notices.map((notice) => (
+            <div key={notice.id} className="rounded-xl bg-poke-yellow/20 border border-poke-yellow px-4 py-3">
+              <div className="flex items-start gap-2">
+                <span className="text-sm">📢</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800">{notice.content}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{formatTime(notice.createdAt)}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 게시글 등록 버튼 / 폼 */}
       {!showForm ? (
