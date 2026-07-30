@@ -7,21 +7,31 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// POST /api/upload - 서명된 업로드 파라미터 발급
-export async function POST() {
-  const timestamp = Math.round(Date.now() / 1000);
-  const folder = "eta-trading";
+// POST /api/upload - 서버에서 Cloudinary로 직접 업로드
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
 
-  const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder },
-    process.env.CLOUDINARY_API_SECRET!,
-  );
+    if (!file) {
+      return NextResponse.json({ error: "파일이 없습니다." }, { status: 400 });
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "10MB 이하 파일만 업로드할 수 있어요." }, { status: 400 });
+    }
 
-  return NextResponse.json({
-    signature,
-    timestamp,
-    folder,
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-    apiKey: process.env.CLOUDINARY_API_KEY,
-  });
+    // File → Buffer → base64
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = `data:${file.type};base64,${buffer.toString("base64")}`;
+
+    const result = await cloudinary.uploader.upload(base64, {
+      folder: "eta-trading",
+    });
+
+    return NextResponse.json({ url: result.secure_url });
+  } catch (err) {
+    console.error("Upload error:", err);
+    return NextResponse.json({ error: "업로드에 실패했어요." }, { status: 500 });
+  }
 }

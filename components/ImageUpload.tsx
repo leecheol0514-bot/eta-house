@@ -25,28 +25,18 @@ export function ImageUpload({ onUpload, label = "이미지 첨부", compact = fa
 
     setUploading(true);
     try {
-      // 1. 서명 발급
-      const sigRes = await fetch("/api/upload", { method: "POST" });
-      const { signature, timestamp, folder, cloudName, apiKey } = await sigRes.json();
-
-      // 2. Cloudinary에 직접 업로드
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("signature", signature);
-      formData.append("timestamp", String(timestamp));
-      formData.append("folder", folder);
-      formData.append("api_key", apiKey);
 
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: "POST", body: formData },
-      );
-      const uploadData = await uploadRes.json();
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "업로드 실패");
 
-      if (!uploadRes.ok) throw new Error(uploadData.error?.message ?? "업로드 실패");
-
-      setPreview(uploadData.secure_url);
-      onUpload(uploadData.secure_url);
+      setPreview(data.url);
+      onUpload(data.url);
     } catch (err) {
       alert(err instanceof Error ? err.message : "업로드 실패");
     } finally {
