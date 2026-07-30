@@ -2,8 +2,8 @@
 
 import { CreatePostForm } from "@/components/CreatePostForm";
 import { PostCard } from "@/components/PostCard";
-import type { CreatePostRequest, Notice, Post } from "@/lib/types";
-import { formatTime, getStoredUser } from "@/lib/utils";
+import type { ChatThread, CreatePostRequest, Notice, Post } from "@/lib/types";
+import { countUnread, formatTime, getStoredUser } from "@/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ export default function BoardPage() {
   const [user, setUser] = useState<{ id: string; nickname: string } | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
@@ -41,11 +42,20 @@ export default function BoardPage() {
     if (res.ok) setNotices(data.notices);
   }, []);
 
+  const fetchUnread = useCallback(async () => {
+    const u = getStoredUser();
+    if (!u) return;
+    const res = await fetch(`/api/users/${u.id}/threads`);
+    if (!res.ok) return;
+    const data = await res.json();
+    setUnreadCount(countUnread(data.threads as ChatThread[], u.id));
+  }, []);
+
   useEffect(() => {
-    Promise.all([fetchPosts(), fetchNotices()]).finally(() => setLoading(false));
-    const interval = setInterval(fetchPosts, 10_000);
+    Promise.all([fetchPosts(), fetchNotices(), fetchUnread()]).finally(() => setLoading(false));
+    const interval = setInterval(() => { fetchPosts(); fetchUnread(); }, 10_000);
     return () => clearInterval(interval);
-  }, [fetchPosts, fetchNotices]);
+  }, [fetchPosts, fetchNotices, fetchUnread]);
 
   async function handleCreate(data: PostFormData) {
     if (!user) return;
@@ -102,9 +112,14 @@ export default function BoardPage() {
         </div>
         <Link
           href="/chats"
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50"
+          className="relative rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50"
         >
           💬 내 채팅
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-poke-red px-1 text-xs font-bold text-white">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </Link>
       </header>
 

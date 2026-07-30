@@ -49,7 +49,31 @@ export function formatFullTime(timestamp: number): string {
   }).format(timestamp);
 }
 
-// ─── 포켓몬 표시 ─────────────────────────────────────────
+// ─── 채팅 읽음 처리 (localStorage) ──────────────────────
+const readKey = (threadId: string) => `eta-read-${threadId}`;
+
+export function markThreadRead(threadId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(readKey(threadId), String(Date.now()));
+}
+
+export function getThreadLastRead(threadId: string): number {
+  if (typeof window === "undefined") return 0;
+  return Number(localStorage.getItem(readKey(threadId)) ?? 0);
+}
+
+export function countUnread(
+  threads: { id: string; messages: { senderId: string; createdAt: number }[] }[],
+  myUserId: string,
+): number {
+  return threads.filter((t) => {
+    const lastRead = getThreadLastRead(t.id);
+    // 내가 보낸 메시지 제외, 읽은 시간 이후 상대방 메시지가 있으면 unread
+    return t.messages.some(
+      (m) => m.senderId !== myUserId && m.createdAt > lastRead,
+    );
+  }).length;
+}
 export function pokemonLabel(p: {
   name: string;
   shiny?: boolean;

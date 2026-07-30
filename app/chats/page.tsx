@@ -2,7 +2,7 @@
 
 import { ChatWindow } from "@/components/ChatWindow";
 import type { ChatThread, Post } from "@/lib/types";
-import { formatTime, getStoredUser, pokemonLabel } from "@/lib/utils";
+import { countUnread, formatTime, getStoredUser, markThreadRead, pokemonLabel } from "@/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -15,7 +15,6 @@ export default function ChatsPage() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
     const u = getStoredUser();
     if (!u) { router.replace("/"); return; }
@@ -113,6 +112,7 @@ export default function ChatsPage() {
             const other = t.participants.find((p) => p.id !== user?.id);
             const lastMsg = t.messages.at(-1);
             const isActive = t.id === activeThreadId;
+            const hasUnread = !isActive && countUnread([t], user?.id ?? "") > 0;
 
             return (
               <div key={t.id}>
@@ -121,12 +121,18 @@ export default function ChatsPage() {
                   className={`w-full card text-left transition ${
                     isActive ? "border-poke-red ring-2 ring-poke-red/20" : "hover:border-slate-300"
                   }`}
-                  onClick={() => setActiveThreadId(isActive ? null : t.id)}
+                  onClick={() => {
+                    setActiveThreadId(isActive ? null : t.id);
+                    if (!isActive) markThreadRead(t.id);
+                  }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-slate-700 text-sm">{other?.nickname ?? "상대방"}</span>
+                        {hasUnread && (
+                          <span className="flex h-2 w-2 rounded-full bg-poke-red" />
+                        )}
                         {t.dealStatus === "confirmed" && (
                           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">✅ 확정</span>
                         )}

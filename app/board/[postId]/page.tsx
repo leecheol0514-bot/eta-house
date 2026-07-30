@@ -2,7 +2,7 @@
 
 import { ChatWindow } from "@/components/ChatWindow";
 import type { ChatThread, Post } from "@/lib/types";
-import { formatTime, getStoredUser, pokemonLabel } from "@/lib/utils";
+import { formatTime, getStoredUser, markThreadRead, pokemonLabel } from "@/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -58,6 +58,7 @@ export default function PostDetailPage({ params }: PageProps) {
 
   useEffect(() => {
     if (!thread) return;
+    markThreadRead(thread.id);
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(() => fetchThread(thread.id), 3000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
